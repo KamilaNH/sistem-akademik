@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.database.database import Base
 
 
-class Course(Base):
+class Course(Base):         
     """
     ORM Model untuk tabel 'courses' di MySQL.
 

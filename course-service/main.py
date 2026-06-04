@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.database.database import engine, settings
+from app.models.course_model import Base
 from app.routers.course_router import router as course_router
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
@@ -22,18 +23,18 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Kode di atas 'yield' → dijalankan saat aplikasi START.
-    Kode di bawah 'yield' → dijalankan saat aplikasi STOP.
-
-    Menggantikan @app.on_event("startup") yang sudah deprecated.
-    """
-    # Startup: verifikasi koneksi database
+    # Startup: verifikasi koneksi database & buat tabel
     logger.info("Starting %s [%s]", settings.app_name, settings.app_env)
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("Database connection: OK")
+
+        # Buat tabel otomatis jika belum ada
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Tables created/verified: OK")
+
     except Exception as exc:
         logger.critical("Database connection FAILED: %s", exc)
         raise
@@ -55,8 +56,8 @@ app = FastAPI(
         "Diakses oleh Enrollment Service, Grade Service, dan Student Service."
     ),
     version="1.0.0",
-    docs_url="/docs",       # Swagger UI
-    redoc_url="/redoc",     # ReDoc UI
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
@@ -65,7 +66,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # Di production, ganti dengan daftar origin spesifik
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,12 +77,6 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """
-    Tangkap semua exception yang tidak ter-handle.
-
-    Tanpa ini, FastAPI mengembalikan 500 dengan stack trace
-    yang bisa mengekspos informasi sensitif ke klien.
-    """
     logger.exception("Unhandled error on %s %s", request.method, request.url)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -100,14 +95,6 @@ app.include_router(course_router, prefix="/api/v1")
 
 @app.get("/health", tags=["Health"], summary="Health check")
 async def health_check() -> dict:
-    """
-    Endpoint untuk Docker healthcheck dan load balancer.
-
-    Harus:
-    - Selalu mengembalikan 200 jika service siap
-    - Cepat (< 100ms)
-    - Tidak butuh autentikasi
-    """
     return {
         "status": "healthy",
         "service": settings.app_name,

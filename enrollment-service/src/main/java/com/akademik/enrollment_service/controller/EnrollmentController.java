@@ -15,6 +15,7 @@ public class EnrollmentController {
     @Autowired
     private EnrollmentService service;
 
+    // GET /health
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         Map<String, String> res = new HashMap<>();
@@ -23,6 +24,7 @@ public class EnrollmentController {
         return ResponseEntity.ok(res);
     }
 
+    // GET /enrollments
     @GetMapping("/enrollments")
     public ResponseEntity<?> getAll() {
         Map<String, Object> res = new HashMap<>();
@@ -31,6 +33,7 @@ public class EnrollmentController {
         return ResponseEntity.ok(res);
     }
 
+    // GET /enrollments/{id}
     @GetMapping("/enrollments/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         return service.getById(id)
@@ -40,9 +43,15 @@ public class EnrollmentController {
                 res.put("data", e);
                 return ResponseEntity.ok(res);
             })
-            .orElse(ResponseEntity.notFound().build());
+            .orElseGet(() -> {
+                Map<String, Object> res = new HashMap<>();
+                res.put("service", "enrollment-service");
+                res.put("message", "Enrollment tidak ditemukan");
+                return ResponseEntity.status(404).body(res);
+            });
     }
 
+    // GET /enrollments/student/{studentId}
     @GetMapping("/enrollments/student/{studentId}")
     public ResponseEntity<?> getByStudent(@PathVariable String studentId) {
         Map<String, Object> res = new HashMap<>();
@@ -51,6 +60,7 @@ public class EnrollmentController {
         return ResponseEntity.ok(res);
     }
 
+    // GET /enrollments/course/{courseId}
     @GetMapping("/enrollments/course/{courseId}")
     public ResponseEntity<?> getByCourse(@PathVariable Long courseId) {
         Map<String, Object> res = new HashMap<>();
@@ -59,8 +69,16 @@ public class EnrollmentController {
         return ResponseEntity.ok(res);
     }
 
+    // POST /enrollments
     @PostMapping("/enrollments")
     public ResponseEntity<?> create(@RequestBody Enrollment enrollment) {
+        if (enrollment.getStudentId() == null || enrollment.getCourseId() == null
+                || enrollment.getSemester() == null || enrollment.getTahunAkademik() == null) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("service", "enrollment-service");
+            res.put("message", "studentId, courseId, semester, tahunAkademik wajib diisi");
+            return ResponseEntity.status(400).body(res);
+        }
         Map<String, Object> res = new HashMap<>();
         res.put("service", "enrollment-service");
         res.put("message", "Enrollment berhasil ditambahkan");
@@ -68,6 +86,7 @@ public class EnrollmentController {
         return ResponseEntity.status(201).body(res);
     }
 
+    // PUT /enrollments/{id}
     @PutMapping("/enrollments/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Enrollment data) {
         return service.update(id, data)
@@ -78,9 +97,15 @@ public class EnrollmentController {
                 res.put("data", e);
                 return ResponseEntity.ok(res);
             })
-            .orElse(ResponseEntity.notFound().build());
+            .orElseGet(() -> {
+                Map<String, Object> res = new HashMap<>();
+                res.put("service", "enrollment-service");
+                res.put("message", "Enrollment tidak ditemukan");
+                return ResponseEntity.status(404).body(res);
+            });
     }
 
+    // DELETE /enrollments/{id}
     @DeleteMapping("/enrollments/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         Map<String, Object> res = new HashMap<>();
@@ -89,6 +114,8 @@ public class EnrollmentController {
             res.put("message", "Enrollment berhasil dihapus");
             return ResponseEntity.ok(res);
         }
-        return ResponseEntity.notFound().build();
+        res.put("service", "enrollment-service");
+        res.put("message", "Enrollment tidak ditemukan");
+        return ResponseEntity.status(404).body(res);
     }
 }
