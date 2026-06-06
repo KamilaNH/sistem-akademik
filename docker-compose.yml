@@ -1,5 +1,9 @@
 services:
 
+  # =====================
+  # STUDENT SERVICE
+  # Node.js + MongoDB
+  # =====================
   mongodb:
     image: mongo:7.0
     container_name: mongodb
@@ -22,9 +26,120 @@ services:
     networks:
       - academic-network
 
+  # =====================
+  # COURSE SERVICE
+  # Python FastAPI + MySQL
+  # =====================
+  mysql-course:
+    image: mysql:8.0
+    container_name: mysql-course
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=course_db
+    volumes:
+      - mysql_course_data:/var/lib/mysql
+    networks:
+      - academic-network
+
+  course-service:
+    build: ./course-service
+    container_name: course-service
+    ports:
+      - "3002:3002"
+    environment:
+      - DB_HOST=mysql-course
+      - DB_PORT=3306
+      - DB_NAME=course_db
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      - mysql-course
+    networks:
+      - academic-network
+
+  # =====================
+  # ENROLLMENT SERVICE
+  # Java Spring Boot + PostgreSQL
+  # =====================
+  postgres-enrollment:
+    image: postgres:16-alpine
+    container_name: postgres-enrollment
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db_enrollment
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_enrollment_data:/var/lib/postgresql/data
+    networks:
+      - academic-network
+
+  enrollment-service:
+    build: ./enrollment-service
+    container_name: enrollment-service
+    ports:
+      - "3003:3003"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-enrollment:5432/db_enrollment
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - STUDENT_SERVICE_URL=http://student-service:3001
+      - COURSE_SERVICE_URL=http://course-service:3002
+    depends_on:
+      - postgres-enrollment
+      - student-service
+      - course-service
+    networks:
+      - academic-network
+
+  # =====================
+  # GRADE SERVICE
+  # PHP Native + SQLite
+  # =====================
+  grade-service:
+    build: ./grade-service
+    container_name: grade-service
+    ports:
+      - "3004:3004"
+    environment:
+      - STUDENT_SERVICE_URL=http://student-service:3001
+      - ENROLLMENT_SERVICE_URL=http://enrollment-service:3003
+    depends_on:
+      - student-service
+      - enrollment-service
+    networks:
+      - academic-network
+
+  # =====================
+  # API GATEWAY + GRAPHQL
+  # Node.js + GraphQL
+  # =====================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - STUDENT_SERVICE_URL=http://student-service:3001
+      - COURSE_SERVICE_URL=http://course-service:3002
+      - ENROLLMENT_SERVICE_URL=http://enrollment-service:3003
+      - GRADE_SERVICE_URL=http://grade-service:3004
+    depends_on:
+      - student-service
+      - course-service
+      - enrollment-service
+      - grade-service
+    networks:
+      - academic-network
+
 networks:
   academic-network:
     driver: bridge
 
 volumes:
   mongodb_data:
+  mysql_course_data:
+  postgres_enrollment_data:
