@@ -12,7 +12,15 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB terhubung"))
   .catch((err) => console.log("Gagal konek MongoDB:", err.message));
 
+// Schema counter untuk auto-increment id
+const counterSchema = new mongoose.Schema({
+  _id: { type: String },
+  seq: { type: Number, default: 0 }
+});
+const Counter = mongoose.model("Counter", counterSchema);
+
 const mahasiswaSchema = new mongoose.Schema({
+  id: { type: Number, unique: true },
   nim: { type: String, required: true, unique: true },
   nama: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -20,6 +28,19 @@ const mahasiswaSchema = new mongoose.Schema({
   angkatan: { type: Number, required: true },
   status: { type: String, default: "aktif" }
 }, { timestamps: true });
+
+// Auto-increment id sebelum save
+mahasiswaSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    const counter = await Counter.findByIdAndUpdate(
+      "mahasiswa_id",
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    this.id = counter.seq;
+  }
+  next();
+});
 
 const Mahasiswa = mongoose.model("Mahasiswa", mahasiswaSchema);
 
@@ -29,7 +50,7 @@ app.get("/health", (req, res) => {
 
 app.get("/students", async (req, res) => {
   try {
-    const data = await Mahasiswa.find();
+    const data = await Mahasiswa.find({}, { _id: 0 });
     res.json({ service: "student-service", data: data });
   } catch (error) {
     res.status(500).json({ service: "student-service", message: "Gagal mengambil data", error: error.message });
@@ -38,7 +59,7 @@ app.get("/students", async (req, res) => {
 
 app.get("/students/nim/:nim", async (req, res) => {
   try {
-    const data = await Mahasiswa.findOne({ nim: req.params.nim });
+    const data = await Mahasiswa.findOne({ nim: req.params.nim }, { _id: 0 });
     if (!data) return res.status(404).json({ service: "student-service", message: "Mahasiswa tidak ditemukan" });
     res.json({ service: "student-service", data: data });
   } catch (error) {
@@ -48,7 +69,12 @@ app.get("/students/nim/:nim", async (req, res) => {
 
 app.get("/students/:id", async (req, res) => {
   try {
-    const data = await Mahasiswa.findById(req.params.id);
+    let data;
+    if (!isNaN(req.params.id)) {
+      data = await Mahasiswa.findOne({ id: Number(req.params.id) }, { _id: 0 });
+    } else {
+      data = await Mahasiswa.findById(req.params.id, { _id: 0 });
+    }
     if (!data) return res.status(404).json({ service: "student-service", message: "Mahasiswa tidak ditemukan" });
     res.json({ service: "student-service", data: data });
   } catch (error) {
@@ -64,7 +90,10 @@ app.post("/students", async (req, res) => {
     }
     const mahasiswaBaru = new Mahasiswa({ nim, nama, email, prodi, angkatan, status });
     const simpan = await mahasiswaBaru.save();
-    res.status(201).json({ service: "student-service", message: "Mahasiswa berhasil ditambahkan", data: simpan });
+    const result = simpan.toObject();
+    delete result._id;
+    delete result.__v;
+    res.status(201).json({ service: "student-service", message: "Mahasiswa berhasil ditambahkan", data: result });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ service: "student-service", message: "NIM atau email sudah terdaftar" });
@@ -75,7 +104,12 @@ app.post("/students", async (req, res) => {
 
 app.put("/students/:id", async (req, res) => {
   try {
-    const data = await Mahasiswa.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    let data;
+    if (!isNaN(req.params.id)) {
+      data = await Mahasiswa.findOneAndUpdate({ id: Number(req.params.id) }, req.body, { new: true, projection: { _id: 0 } });
+    } else {
+      data = await Mahasiswa.findByIdAndUpdate(req.params.id, req.body, { new: true, projection: { _id: 0 } });
+    }
     if (!data) return res.status(404).json({ service: "student-service", message: "Mahasiswa tidak ditemukan" });
     res.json({ service: "student-service", message: "Data berhasil diperbarui", data: data });
   } catch (error) {
@@ -85,9 +119,17 @@ app.put("/students/:id", async (req, res) => {
 
 app.delete("/students/:id", async (req, res) => {
   try {
-    const data = await Mahasiswa.findByIdAndDelete(req.params.id);
+    let data;
+    if (!isNaN(req.params.id)) {
+      data = await Mahasiswa.findOneAndDelete({ id: Number(req.params.id) });
+    } else {
+      data = await Mahasiswa.findByIdAndDelete(req.params.id);
+    }
     if (!data) return res.status(404).json({ service: "student-service", message: "Mahasiswa tidak ditemukan" });
-    res.json({ service: "student-service", message: "Mahasiswa berhasil dihapus", data: data });
+    const result = data.toObject();
+    delete result._id;
+    delete result.__v;
+    res.json({ service: "student-service", message: "Mahasiswa berhasil dihapus", data: result });
   } catch (error) {
     res.status(500).json({ service: "student-service", message: "Gagal menghapus data", error: error.message });
   }

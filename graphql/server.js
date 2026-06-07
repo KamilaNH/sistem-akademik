@@ -8,11 +8,8 @@ const PORT = 4000;
 
 app.use(express.json());
 
-// URL masing-masing service
-const STUDENT_SERVICE_URL = process.env.STUDENT_SERVICE_URL || "http://student-service:3001";
-const COURSE_SERVICE_URL = process.env.COURSE_SERVICE_URL || "http://course-service:3002";
-const ENROLLMENT_SERVICE_URL = process.env.ENROLLMENT_SERVICE_URL || "http://enrollment-service:3003";
-const GRADE_SERVICE_URL = process.env.GRADE_SERVICE_URL || "http://grade-service:3004";
+// URL API Gateway
+const API_GATEWAY_URL = process.env.API_GATEWAY_URL || "http://api-gateway:3000";
 
 // =====================================================
 // GRAPHQL SCHEMA
@@ -20,15 +17,16 @@ const GRADE_SERVICE_URL = process.env.GRADE_SERVICE_URL || "http://grade-service
 // Client hanya bisa minta field yang ada di sini
 // =====================================================
 const schema = buildSchema(`
-  type Student {
+   type Student {
     _id: String
+    id: Int        
     nim: String
     nama: String
     email: String
     prodi: String
     angkatan: Int
     status: String
-  }
+}
 
   type Course {
     id: Int
@@ -122,7 +120,7 @@ const root = {
   // ---------------------------------------------------
   students: async () => {
     try {
-      const res = await fetch(`${STUDENT_SERVICE_URL}/students`);
+      const res = await fetch(`${API_GATEWAY_URL}/students`);
       const json = await res.json();
       return json.data;
     } catch (error) {
@@ -132,7 +130,7 @@ const root = {
 
   student: async ({ id }) => {
     try {
-      const res = await fetch(`${STUDENT_SERVICE_URL}/students/${id}`);
+      const res = await fetch(`${API_GATEWAY_URL}/students/${id}`);
       const json = await res.json();
       return json.data;
     } catch (error) {
@@ -142,7 +140,7 @@ const root = {
 
   studentByNim: async ({ nim }) => {
     try {
-      const res = await fetch(`${STUDENT_SERVICE_URL}/students/nim/${nim}`);
+      const res = await fetch(`${API_GATEWAY_URL}/students/nim/${nim}`);
       const json = await res.json();
       return json.data;
     } catch (error) {
@@ -152,7 +150,7 @@ const root = {
 
   createStudent: async ({ input }) => {
     try {
-      const res = await fetch(`${STUDENT_SERVICE_URL}/students`, {
+      const res = await fetch(`${API_GATEWAY_URL}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input)
@@ -170,7 +168,7 @@ const root = {
   // ---------------------------------------------------
   courses: async () => {
     try {
-      const res = await fetch(`${COURSE_SERVICE_URL}/api/v1/courses`);
+      const res = await fetch(`${API_GATEWAY_URL}/api/v1/courses`);
       const json = await res.json();
       return json.data?.items || json.data || [];
     } catch (error) {
@@ -180,7 +178,7 @@ const root = {
 
   course: async ({ id }) => {
     try {
-      const res = await fetch(`${COURSE_SERVICE_URL}/api/v1/courses/${id}`);
+      const res = await fetch(`${API_GATEWAY_URL}/api/v1/courses/${id}`);
       const json = await res.json();
       return json.data?.item || json.data || null;
     } catch (error) {
@@ -193,7 +191,7 @@ const root = {
   // ---------------------------------------------------
   enrollments: async () => {
   try {
-    const res = await fetch(`${ENROLLMENT_SERVICE_URL}/enrollments`);
+    const res = await fetch(`${API_GATEWAY_URL}/enrollments`);
     const json = await res.json();
     const data = json.data || [];
     return data.map(e => ({
@@ -208,7 +206,7 @@ const root = {
 
 enrollmentsByStudent: async ({ studentId }) => {
   try {
-    const res = await fetch(`${ENROLLMENT_SERVICE_URL}/enrollments/student/${studentId}`);
+    const res = await fetch(`${API_GATEWAY_URL}/enrollments/student/${studentId}`);
     const json = await res.json();
     const data = json.data || [];
     return data.map(e => ({
@@ -226,7 +224,7 @@ enrollmentsByStudent: async ({ studentId }) => {
   // ---------------------------------------------------
   grades: async () => {
     try {
-      const res = await fetch(`${GRADE_SERVICE_URL}/grades`);
+      const res = await fetch(`${API_GATEWAY_URL}/grades`);
       const json = await res.json();
       return json.data || [];
     } catch (error) {
@@ -236,7 +234,7 @@ enrollmentsByStudent: async ({ studentId }) => {
 
   gradesByStudent: async ({ studentId }) => {
     try {
-      const res = await fetch(`${GRADE_SERVICE_URL}/grades/student/${studentId}`);
+      const res = await fetch(`${API_GATEWAY_URL}/grades/student/${studentId}`);
       const json = await res.json();
       return json.data || [];
     } catch (error) {
@@ -246,7 +244,7 @@ enrollmentsByStudent: async ({ studentId }) => {
 
   createGrade: async ({ input }) => {
     try {
-      const res = await fetch(`${GRADE_SERVICE_URL}/grades`, {
+      const res = await fetch(`${API_GATEWAY_URL}/grades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input)
@@ -262,26 +260,13 @@ enrollmentsByStudent: async ({ studentId }) => {
   // HEALTH CHECK SEMUA SERVICE
   // ---------------------------------------------------
   healthCheck: async () => {
-    const services = [
-      { name: "student-service", url: `${STUDENT_SERVICE_URL}/health` },
-      { name: "course-service", url: `${COURSE_SERVICE_URL}/health` },
-      { name: "enrollment-service", url: `${ENROLLMENT_SERVICE_URL}/health` },
-      { name: "grade-service", url: `${GRADE_SERVICE_URL}/health` },
-    ];
-
-    const results = await Promise.all(
-      services.map(async (s) => {
-        try {
-          const res = await fetch(s.url);
-          const json = await res.json();
-          return { service: s.name, status: json.status || "running" };
-        } catch {
-          return { service: s.name, status: "down" };
-        }
-      })
-    );
-
-    return results;
+    try {
+      const res = await fetch(`${API_GATEWAY_URL}/health-check`);
+      const json = await res.json();
+      return json;
+    } catch (error) {
+      throw new Error("Gagal health check: " + error.message);
+    }
   }
 };
 
