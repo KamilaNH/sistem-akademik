@@ -10,7 +10,7 @@ app.use(express.json());
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB terhubung"))
-  .catch((err) => console.log("Gagal konek MongoDB:", err.message));
+  .catch((err) => console.log("Gagal koneksi MongoDB:", err.message));
 
 const mahasiswaSchema = new mongoose.Schema({
   nim: { type: String, required: true, unique: true },

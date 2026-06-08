@@ -1,5 +1,5 @@
 {
-  "name": "api-gateway",
+  "name": "graphql-gateway",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -7,6 +7,8 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "express-graphql": "^0.12.0",
+    "graphql": "^15.8.0",
     "node-fetch": "^2.7.0"
   }
 }

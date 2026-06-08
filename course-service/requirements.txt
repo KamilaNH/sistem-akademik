@@ -2,4 +2,9 @@ fastapi
 uvicorn
 sqlalchemy
 aiomysql
+<<<<<<< HEAD
 pydantic-settings
+=======
+pydantic-settings
+cryptography
+>>>>>>> 345ccfaadb1d8ad148e7eb1a6e902afe43644c5f

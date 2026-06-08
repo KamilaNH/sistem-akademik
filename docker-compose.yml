@@ -114,6 +114,7 @@ services:
       - academic-network
 
   # =====================
+<<<<<<< HEAD
   # API GATEWAY + GRAPHQL
   # Node.js + GraphQL
   # =====================
@@ -122,6 +123,16 @@ services:
     container_name: api-gateway
     ports:
       - "3000:3000"
+=======
+  # GRAPHQL GATEWAY (PORT 4000)
+  # Node.js + GraphQL - Single Endpoint untuk semua layanan
+  # =====================
+  graphql-gateway:
+    build: ./graphql
+    container_name: graphql-gateway
+    ports:
+      - "4000:4000"
+>>>>>>> 345ccfaadb1d8ad148e7eb1a6e902afe43644c5f
     environment:
       - STUDENT_SERVICE_URL=http://student-service:3001
       - COURSE_SERVICE_URL=http://course-service:3002
