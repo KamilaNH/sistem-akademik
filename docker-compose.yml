@@ -1,9 +1,8 @@
 services:
 
-  # =====================
   # STUDENT SERVICE
   # Node.js + MongoDB
-  # =====================
+
   mongodb:
     image: mongo:7.0
     container_name: mongodb
@@ -26,10 +25,10 @@ services:
     networks:
       - academic-network
 
-  # =====================
+
   # COURSE SERVICE
   # Python FastAPI + MySQL
-  # =====================
+
   mysql-course:
     image: mysql:8.0
     container_name: mysql-course
@@ -59,10 +58,10 @@ services:
     networks:
       - academic-network
 
-  # =====================
+
   # ENROLLMENT SERVICE
   # Java Spring Boot + PostgreSQL
-  # =====================
+
   postgres-enrollment:
     image: postgres:16-alpine
     container_name: postgres-enrollment
@@ -95,10 +94,10 @@ services:
     networks:
       - academic-network
 
-  # =====================
+
   # GRADE SERVICE
   # PHP Native + SQLite
-  # =====================
+
   grade-service:
     build: ./grade-service
     container_name: grade-service
@@ -115,17 +114,39 @@ services:
 
   # =====================
 <<<<<<< HEAD
+<<<<<<< HEAD
   # API GATEWAY + GRAPHQL
   # Node.js + GraphQL
+=======
+  # API GATEWAY (PORT 3000)
+  # Node.js + GraphQL
+>>>>>>> c0637fe1803e608c23479456c861a5989d460e1e
   # =====================
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     ports:
       - "3000:3000"
+<<<<<<< HEAD
 =======
+=======
+    environment:
+      - STUDENT_SERVICE_URL=http://student-service:3001
+      - COURSE_SERVICE_URL=http://course-service:3002
+      - ENROLLMENT_SERVICE_URL=http://enrollment-service:3003
+      - GRADE_SERVICE_URL=http://grade-service:3004
+    depends_on:
+      - student-service
+      - course-service
+      - enrollment-service
+      - grade-service
+    networks:
+      - academic-network
+
+  # =====================
+>>>>>>> c0637fe1803e608c23479456c861a5989d460e1e
   # GRAPHQL GATEWAY (PORT 4000)
-  # Node.js + GraphQL - Single Endpoint untuk semua layanan
+  # Node.js + GraphQL
   # =====================
   graphql-gateway:
     build: ./graphql
